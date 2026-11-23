@@ -1,6 +1,19 @@
 name: diag
 on:
   workflow_dispatch:
+    inputs:
+      gap:
+        description: 'gap id, e.g. L-meta-573'
+        required: false
+        default: 'L-meta-196'
+      file:
+        description: 'proof file to check'
+        required: false
+        default: 'lean/PEqualNP/Outside/L_meta_196.lean'
+      branch:
+        description: 'branch holding the proof'
+        required: false
+        default: 'proof/L-meta-196'
   push:
     branches: [proof/L-meta-196]
 
@@ -9,13 +22,15 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     env:
-      FILE: lean/PEqualNP/Outside/L_meta_196.lean
+      GAP: ${{ inputs.gap || 'L-meta-196' }}
+      FILE: ${{ inputs.file || 'lean/PEqualNP/Outside/L_meta_196.lean' }}
+      BRANCH: ${{ inputs.branch || 'proof/L-meta-196' }}
     steps:
       - name: Fetch the proof branch
         run: |
           set -eu
           git init -q .
-          git fetch -q --depth 1 "https://github.com/CyberPardofelis/pequalnp-proofs.git" "refs/heads/proof/L-meta-196"
+          git fetch -q --depth 1 "https://github.com/CyberPardofelis/pequalnp-proofs.git" "refs/heads/$BRANCH"
           git checkout -q --detach FETCH_HEAD
 
       - name: The statement
@@ -23,8 +38,9 @@ jobs:
           set -eu
           mkdir -p "$RUNNER_TEMP/in"
           curl -sSfL --max-filesize 5000000 -o "$RUNNER_TEMP/in/gaps.json" https://data.pequalnp.com/data/desk/gaps.json
-          jq -r '.gaps[] | select(.id=="L-meta-196") | .statement' "$RUNNER_TEMP/in/gaps.json" > "$RUNNER_TEMP/in/statement.txt"
-          echo "statement bytes: $(wc -c < "$RUNNER_TEMP/in/statement.txt")"
+          jq -r --arg g "$GAP" '.gaps[] | select(.id==$g) | .statement' "$RUNNER_TEMP/in/gaps.json" > "$RUNNER_TEMP/in/statement.txt"
+          echo "gap: $GAP  statement bytes: $(wc -c < "$RUNNER_TEMP/in/statement.txt")"
+          head -c 300 "$RUNNER_TEMP/in/statement.txt"
 
       - name: The guard
         run: |
