@@ -134,7 +134,7 @@ private lemma foldl_mod_eq : ∀ (gs : List Gate) (x : List Bool) (j a h : ℕ),
   induction gs with
   | nil =>
     intro x j a h hj hh hval
-    simp only [getElem?_nil'] at hj
+    exact absurd hj (by rw [getElem?_nil']; simp)
   | cons g gs ih =>
     intro x j a h hj hh hval
     cases j with
@@ -185,7 +185,7 @@ private lemma foldl_mod_getD : ∀ (gs : List Gate) (x : List Bool) (j a h : ℕ
   induction gs with
   | nil =>
     intro x j a h hj hh
-    simp only [getElem?_nil'] at hj
+    exact absurd hj (by rw [getElem?_nil']; simp)
   | cons g gs ih =>
     intro x j a h hj hh
     cases j with
@@ -268,7 +268,7 @@ theorem PEqualNP.Outside.L_meta_196 :
         PEqualNP.MetaComplexity.circuitFun n C x ≠ f x ∨
           ((C.wires (List.ofFn x)).getD h false = true ∧ f x = false) := by
   intro n j a h C f hj hh x hx
-  have hlen : (List.ofFn x).length = n := List.length_ofFn x
+  have hlen : (List.ofFn x).length = n := List.length_ofFn
   have hW : C.wires (List.ofFn x) = C.gates.foldl step (List.ofFn x) := rfl
   by_cases hv : (C.wires (List.ofFn x)).getD h false = false
   · have hmain : (C.gates.set j ⟨GateOp.or, [a]⟩).foldl step (List.ofFn x)
