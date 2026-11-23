@@ -1,0 +1,62 @@
+name: diag
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  diag:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      FILE: lean/PEqualNP/Outside/L_meta_494.lean
+    steps:
+      - name: Fetch the pull request
+        run: |
+          set -eu
+          git init -q .
+          git fetch -q --depth 2 "https://github.com/CyberPardofelis/pequalnp-proofs.git" "refs/pull/1/merge"
+          git checkout -q --detach FETCH_HEAD
+
+      - name: The statement
+        run: |
+          set -eu
+          mkdir -p "$RUNNER_TEMP/in"
+          curl -sSfL --max-filesize 5000000 -o "$RUNNER_TEMP/in/gaps.json" https://data.pequalnp.com/data/desk/gaps.json
+          jq -r '.gaps[] | select(.id=="L-meta-494") | .statement' "$RUNNER_TEMP/in/gaps.json" > "$RUNNER_TEMP/in/statement.txt"
+          echo "statement bytes: $(wc -c < "$RUNNER_TEMP/in/statement.txt")"
+          cat "$RUNNER_TEMP/in/statement.txt"
+
+      - name: Install the pinned Lean toolchain
+        run: |
+          set -eu
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean/lean-toolchain)"
+
+      - name: Fetch the prebuilt Mathlib
+        working-directory: lean
+        run: lake exe cache get
+
+      - name: Run the checker (raw output)
+        run: |
+          set -x
+          node tools/check-lean.mjs "$FILE" "$RUNNER_TEMP/in/statement.txt" check > "$RUNNER_TEMP/out" 2> "$RUNNER_TEMP/err"
+          echo "checker exit: $?"
+        continue-on-error: true
+
+      - name: Print everything
+        if: always()
+        run: |
+          echo "===== stderr ====="
+          cat "$RUNNER_TEMP/err" || true
+          echo "===== stdout ====="
+          cat "$RUNNER_TEMP/out" || true
+          echo "===== build logs ====="
+          find lean/.lake/build -name '*.log' -newermt '-2 hours' 2>/dev/null | head -20 | while read -r f; do echo "--- $f"; tail -n 40 "$f"; done
+          {
+            echo "===== stderr ====="
+            cat "$RUNNER_TEMP/err" || true
+            echo "===== stdout ====="
+            cat "$RUNNER_TEMP/out" || true
+          } >> "$GITHUB_STEP_SUMMARY"
