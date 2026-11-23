@@ -25,7 +25,7 @@ theorem flatMap_length_ge {α : Type} (xs : List α) (f : α → List Bool)
   induction xs with
   | nil => simp
   | cons a xs ih =>
-      have ha : 4 ≤ (f a).length := h a (List.mem_cons_self a xs)
+      have ha : 4 ≤ (f a).length := h a (List.mem_cons_self)
       have hxs : ∀ x ∈ xs, 4 ≤ (f x).length := by
         intro x hx
         exact h x (List.mem_cons_of_mem a hx)
@@ -58,7 +58,7 @@ theorem sum_le_sum_map {α : Type} (xs : List α) (f g : α → ℕ)
   induction xs with
   | nil => simp
   | cons a xs ih =>
-      have ha : f a ≤ g a := h a (List.mem_cons_self a xs)
+      have ha : f a ≤ g a := h a (List.mem_cons_self)
       have hxs : ∀ x ∈ xs, f x ≤ g x := by
         intro x hx
         exact h x (List.mem_cons_of_mem a hx)
